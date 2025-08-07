@@ -18,6 +18,8 @@ public enum ErrorCode {
     PERMISSION_EXISTS(1008, "Quyền này đã tồn tại", HttpStatus.BAD_REQUEST),
     ROLE_EXISTS(1009, "Quyền này đã tồn tại", HttpStatus.BAD_REQUEST),
     NOT_FOUND(1010, "Không có dữ liệu để hiển thị", HttpStatus.BAD_REQUEST),
+    AUTHORIZED(1011, "Bạn không có quyền để truy cập dữ liệu", HttpStatus.FORBIDDEN),
+    AUTHENTICATED(1012,"Bạn cần đăng nhập",HttpStatus.UNAUTHORIZED)
     ;
 
 

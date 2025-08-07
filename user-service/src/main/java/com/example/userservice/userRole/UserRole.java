@@ -2,6 +2,7 @@ package com.example.userservice.userRole;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "user_roles")
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class UserRole {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

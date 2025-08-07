@@ -2,9 +2,11 @@ package com.example.userservice.exception;
 
 import com.example.userservice.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -42,7 +44,22 @@ public class GlobalExceptionHandler {
         ApiResponse response = new ApiResponse();
         response.setMessage(errorCode.getMessage());
         response.setCode(errorCode.getCode());
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(response);
+    }
+
+    @ExceptionHandler(value = AccessDeniedException.class)
+    ResponseEntity<ApiResponse> handlerAppAccessDeniedException(AccessDeniedException exception) {
+        ErrorCode errorCode = ErrorCode.AUTHORIZED;
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+
+
     }
 
 

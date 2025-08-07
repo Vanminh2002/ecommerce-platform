@@ -9,12 +9,15 @@ import jakarta.annotation.Resource;
 
 import jakarta.validation.Valid;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
-@RequestMapping("api/v1/users")
+@RequestMapping("users")
 public class UserController {
 
     @Resource
@@ -54,5 +57,12 @@ public class UserController {
         return ApiResponse.<String>builder()
                 .message("Xóa người dùng thành công")
                 .build();
+    }
+
+
+    @GetMapping("get-myInfo")
+    ApiResponse<UserResponse> getMyInfo() {
+        UserResponse response = userService.getMyInfo();
+        return ApiResponse.success(response);
     }
 }

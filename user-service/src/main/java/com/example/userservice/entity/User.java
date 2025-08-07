@@ -5,6 +5,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.example.entities.BaseEntity;
 
+import java.util.Set;
+
 
 @ToString
 @Entity
@@ -49,5 +51,5 @@ public class User extends BaseEntity {
     Boolean deleted = false;
 
     @Column(name = "role_id")
-    private Long roleId;
+    private Set<Long> roleId;
 }

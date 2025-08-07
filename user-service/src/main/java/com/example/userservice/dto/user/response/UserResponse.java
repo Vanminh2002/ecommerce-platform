@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
@@ -17,5 +19,5 @@ public class UserResponse {
     String image;
     String address;
     String phone;
-    String roleId;
+    List<String> roleId;
 }

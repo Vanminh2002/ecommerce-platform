@@ -10,7 +10,6 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
-//    @Mapping(target = "address",source = "address")
     User toDto(UserCreateRequest request);
 
     UserResponse toResponse(User user);

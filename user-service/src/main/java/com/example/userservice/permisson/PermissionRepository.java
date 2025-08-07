@@ -1,5 +1,6 @@
 package com.example.userservice.permisson;
 
+import com.example.userservice.role.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +12,7 @@ import java.util.List;
 @Repository
 public interface PermissionRepository extends JpaRepository<Permission, Long> {
     boolean existsByName(String name);
-
+    List<Permission> findAllById(Iterable<Long> ids);
 
    Permission findByName(String name);
 

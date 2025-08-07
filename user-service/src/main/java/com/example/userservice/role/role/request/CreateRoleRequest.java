@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -15,5 +16,5 @@ import java.util.Set;
 public class CreateRoleRequest {
     String name;
     String description;
-    Set<String> permission;
+    List<Long> permissionId;
 }

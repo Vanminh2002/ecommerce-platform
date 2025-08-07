@@ -5,6 +5,9 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+import java.util.Set;
+
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreateRequest {
@@ -24,5 +27,5 @@ public class UserCreateRequest {
     String image;
     String address;
     String phone;
-    Long roleId;
+    List<Long> roleId;
 }

@@ -17,10 +17,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.exception.BaseException;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -39,12 +44,12 @@ public class UserService {
     private UserRoleRepository userRoleRepository;
 
 
-
     @Resource
     private UserMapper userMapper;
     @Resource
     PasswordEncoder passwordEncoder;
 
+    //  cái này sẽ được cho vào thủ tục à khong không có thủ tục nào hết vì sẽ là mô hình micro =)))
     public UserResponse createUser(UserCreateRequest request) {
         try {
             if (userRepository.existsByUsername(request.getUsername())) {
@@ -62,19 +67,31 @@ public class UserService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             System.out.println("After encode, user.getPassword(): " + user.getPassword());
 
-            Role role = roleRepository.findById(request.getRoleId())
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
-            user.setRoleId(role.getId());
+            Set<Role> roles = new HashSet<>();
+            if (request.getRoleId() == null || request.getRoleId().isEmpty()) {
+                Role defaultRole = roleRepository.findByName("USER");
+                if (defaultRole == null) {
+                    throw new AppException(ErrorCode.ROLE_EXISTS);
+                }
+                roles.add(defaultRole);
+            } else {
+                for (Long roleId : request.getRoleId()) {
+                    Role role = roleRepository.findById(roleId)
+                            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+                    roles.add(role);
+                }
+            }
+
+            user.setRoleId(roles.stream().map(Role::getId).collect(Collectors.toSet()));
 
             user = userRepository.save(user);
-
-            UserRole userRole = new UserRole();
-            userRole.setUserId(user.getId());
-            userRole.setRoleId(role.getId());
-
-            userRole = userRoleRepository.save(userRole);
-
+            for (Role role : roles) {
+                UserRole userRole = new UserRole();
+                userRole.setUserId(user.getId());
+                userRole.setRoleId(role.getId());
+                userRoleRepository.save(userRole);
+            }
             return userMapper.toResponse(user);
 
         } catch (Exception e) {
@@ -83,6 +100,7 @@ public class UserService {
         }
     }
 
+    @PreAuthorize("hasRole('USER')")
     public UserResponse getById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -111,10 +129,6 @@ public class UserService {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         return user.stream().map(userMapper::toResponse).collect(Collectors.toList());
-//        return user
-//                .stream()
-//                .map(u -> modelMapper
-//                        .map(u, UserResponse.class)).toList();
     }
 
 
@@ -124,5 +138,16 @@ public class UserService {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         userRepository.deleteById(id);
+    }
+
+//    @PostAuthorize("returnObject.username=authentication.name")
+    public UserResponse getMyInfo() {
+        var context = SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+
+        var username = userRepository.findByUsername(name)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        return userMapper.toResponse(username);
     }
 }

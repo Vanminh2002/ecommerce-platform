@@ -5,9 +5,12 @@ server:
     include-stacktrace: never     # ⛔️ Không trả trace stack
     whitelabel:
       enabled: false              # Tắt giao diện lỗi mặc định
-  port: 8000
+  port: 8081
 
 spring:
+  application:
+    name: user-service
+
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/changelog.sql
@@ -33,6 +36,14 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/user-service.log
+
+
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
 
 jwt:
   signerKey: "oXQ/C4Jx7y3Hzze1KFqpE88NhrCOzUJ+gH8Bj5rDn0bcLDPk16uSzfI4VRSuKGi5"

@@ -14,7 +14,9 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,15 +50,13 @@ public class RoleService {
         Role role = roleMapper.toDto(request);
 
 
-        List<Permission> permissions = new ArrayList<>();
-        for (String permissionName : request.getPermission()) {
-            Permission permission = permissionRepository.findByName(permissionName);
-            if (permission == null) {
-                throw new AppException(ErrorCode.NOT_FOUND);
-            }
+        Set<Permission> permissions = new HashSet<>();
+        for (Long permissionId : request.getPermissionId()) {
+            Permission permission = permissionRepository.findById(permissionId)
+                    .orElseThrow(()->new AppException(ErrorCode.NOT_FOUND));
             permissions.add(permission);
         }
-        role.setPermissions(permissions);
+        role.setPermissionId(permissions.stream().map(Permission::getId).collect(Collectors.toSet()));
         roleRepository.save(role);
         var roleId = role.getId();
 
@@ -67,7 +67,7 @@ public class RoleService {
             rolePermissionRepository.save(rp);
         }
 
-        return roleMapper.toResponse(role, permissions);
+        return roleMapper.toResponse(role, new ArrayList<>(permissions));
     }
 
     public List<RoleResponse> getAll() {

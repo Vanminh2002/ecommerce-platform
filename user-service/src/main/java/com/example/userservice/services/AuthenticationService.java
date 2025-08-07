@@ -4,9 +4,14 @@ import com.example.userservice.dto.auth.request.AuthenticationRequest;
 import com.example.userservice.dto.auth.request.IntrospectRequest;
 import com.example.userservice.dto.auth.response.AuthenticationResponse;
 import com.example.userservice.dto.auth.response.IntrospectResponse;
+import com.example.userservice.entity.User;
 import com.example.userservice.exception.AppException;
 import com.example.userservice.exception.ErrorCode;
+import com.example.userservice.permisson.Permission;
+import com.example.userservice.permisson.PermissionRepository;
 import com.example.userservice.repository.UserRepository;
+import com.example.userservice.role.Role;
+import com.example.userservice.role.RoleRepository;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -19,11 +24,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
+import java.util.StringJoiner;
 
 @Slf4j
 @Service
@@ -33,7 +41,10 @@ public class AuthenticationService {
     private UserRepository userRepository;
     @Resource
     PasswordEncoder passwordEncoder;
-
+    @Resource
+    RoleRepository roleRepository;
+    @Resource
+    PermissionRepository permissionRepository;
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -42,15 +53,13 @@ public class AuthenticationService {
     public AuthenticationResponse authentication(AuthenticationRequest request) {
         var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        System.out.println("Request password: " + request.getPassword());
-        System.out.println("DB hashed password: " + user.getPassword());
-        System.out.println("Match result: " + passwordEncoder.matches(request.getPassword(), user.getPassword()));
+
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-        System.out.println("Encoder class: " + passwordEncoder.getClass().getName());
+
         if (!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        var token = generalToken(request.getUsername());
+        var token = generalToken(user);
         return AuthenticationResponse.builder()
                 .token(token)
                 .authenticated(true)
@@ -81,18 +90,19 @@ public class AuthenticationService {
     }
 
 
-    private String generalToken(String username) {
+    private String generalToken(User user) {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
 
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(username)
+                .subject(user.getUsername())
                 .issuer("Minh")
                 .issueTime(new Date())
+
                 .expirationTime(new Date(Instant.now().plus(
                         15, ChronoUnit.MINUTES
                 ).toEpochMilli()))
-                .claim("custom claim", "custom")
+                .claim("scope", buildScope(user))
                 .build();
 
 
@@ -110,4 +120,27 @@ public class AuthenticationService {
         }
 
     }
+
+
+    public String buildScope(User user) {
+        StringJoiner stringJoiner = new StringJoiner(" ");
+        if (!CollectionUtils.isEmpty(user.getRoleId())) {
+            List<Role> roles = roleRepository.findAllById(user.getRoleId());
+            for (Role role : roles) {
+                String roleName = role.getName();
+                stringJoiner.add("ROLE_" + roleName);
+                if (!CollectionUtils.isEmpty(role.getPermissionId())) {
+                    List<Permission> permissions = permissionRepository.findAllById(role.getPermissionId());
+                    for (Permission permission : permissions) {
+                        stringJoiner.add("Permission " + permission.getName());
+                    }
+                }
+
+            }
+
+        }
+        return stringJoiner.toString();
+    }
+
+
 }
