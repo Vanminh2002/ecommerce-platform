@@ -1,0 +1,38 @@
+server:
+  error:
+    include-message: always       # Tr? message l?i cho client
+    include-exception: false      # Kh�ng tr? t�n exception
+    include-stacktrace: never     # ?? Kh�ng tr? trace stack
+    whitelabel:
+      enabled: false              # T?t giao di?n l?i m?c ??nh
+  port: 8004
+
+spring:
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/changelog.sql
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/inventory_services_db
+    username: postgres
+    password: manhden123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    root: INFO
+    org.springframework: WARN
+    com.example.productservice: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/inventory-service.log
+
+jwt:
+  signerKey: "oXQ/C4Jx7y3Hzze1KFqpE88NhrCOzUJ+gH8Bj5rDn0bcLDPk16uSzfI4VRSuKGi5"
