@@ -1,5 +1,6 @@
 package com.example.userservice.config;
 
+import jakarta.annotation.Resource;
 import lombok.experimental.NonFinal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,19 +23,18 @@ import javax.crypto.spec.SecretKeySpec;
 // phân quyền trong method
 @EnableMethodSecurity
 public class SecurityConfig {
-    @NonFinal
-    @Value("${jwt.signerKey}")
-    protected String SECRET_KEY;
 
     private final String[] PUBLIC_ENDPOINT = {
             "/api/v1/auth/**",
-//            "/**",
+            "/**",
 
     };
     private final String[] ADMIN_ENDPOINT = {
             "/**",
 
     };
+    @Resource
+    private CustomJwtDecoder jwtDecoder;
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -44,11 +44,12 @@ public class SecurityConfig {
 //                                .requestMatchers(ADMIN_ENDPOINT).hasAnyAuthority("ROLE_ADMIN")
                                         .anyRequest().authenticated()
                 );
+
         http.oauth2ResourceServer(oauth2 ->
                         oauth2.jwt(jwt ->
 //                        dùng khi sử dụng api của bên thứ 3
 //                        jwt.jwkSetUri()
-                                        jwt.decoder(jwtDecoder())
+                                        jwt.decoder(jwtDecoder)
                                                 .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
@@ -56,17 +57,7 @@ public class SecurityConfig {
     }
 
 
-    @Bean
-    JwtDecoder jwtDecoder() {
 
-        SecretKeySpec secretKeySpec = new SecretKeySpec(SECRET_KEY.getBytes(), "HS512");
-
-        return NimbusJwtDecoder
-                .withSecretKey(secretKeySpec)
-                .macAlgorithm(MacAlgorithm.HS512)
-                .build();
-
-    }
 
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {

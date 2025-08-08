@@ -1,6 +1,7 @@
 package com.example.userservice.role;
 
 import com.example.userservice.permisson.Permission;
+import com.example.userservice.permisson.permission.response.PermissionResponse;
 import com.example.userservice.role.role.request.CreateRoleRequest;
 import com.example.userservice.role.role.response.RoleResponse;
 import com.example.userservice.exception.AppException;
@@ -13,10 +14,7 @@ import com.example.userservice.rolePermission.RolePermissionRepository;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,7 +51,7 @@ public class RoleService {
         Set<Permission> permissions = new HashSet<>();
         for (Long permissionId : request.getPermissionId()) {
             Permission permission = permissionRepository.findById(permissionId)
-                    .orElseThrow(()->new AppException(ErrorCode.NOT_FOUND));
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
             permissions.add(permission);
         }
         role.setPermissionId(permissions.stream().map(Permission::getId).collect(Collectors.toSet()));
@@ -92,5 +90,34 @@ public class RoleService {
         roleRepository.deleteById(id);
     }
 
+    public List<RoleResponse> getAllRoleWithPermission(List<Long> roleId) {
+        List<Role> listRole = roleRepository.findAllById(roleId);
+
+        // lấy permission từ permissionId của role
+        List<Long> permission = listRole
+                .stream()
+                .filter(role -> role.getPermissionId() != null)
+                .flatMap(r -> r.getPermissionId().stream())
+                .distinct()
+                .toList();
+
+        Map<Long, Permission> permissionMap = permissionRepository.findAllById(permission)
+                .stream()
+                .collect(Collectors.toMap(Permission::getId, p -> p));
+        return listRole.stream()
+                .map(role -> RoleResponse.builder()
+                        .id(role.getId())
+                        .name(role.getName())
+                        .description(role.getDescription())
+                        .permissions(
+                                role.getPermissionId() == null ? List.of() : role.getPermissionId().stream()
+                                        .map(permissionMap::get)
+                                        .filter(Objects::nonNull)
+                                        .map(Permission::getName) // trả về tên => List<String>
+                                        .toList()
+                        )
+
+                        .build()).toList();
+    }
 
 }

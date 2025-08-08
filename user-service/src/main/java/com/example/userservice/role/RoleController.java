@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/roles")
+@RequestMapping("roles")
 public class RoleController {
     @Resource
     private RoleService roleService;
@@ -35,5 +35,11 @@ public class RoleController {
         return ApiResponse.<String>builder()
                 .message("Xóa Role thành công")
                 .build();
+    }
+
+    @GetMapping("get-by/{id}")
+    ApiResponse<List<RoleResponse>> getRoleById(@PathVariable List<Long> id) {
+        List<RoleResponse> response = roleService.getAllRoleWithPermission(id);
+        return ApiResponse.success(response);
     }
 }

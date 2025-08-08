@@ -2,13 +2,16 @@ package com.example.userservice.services;
 
 import com.example.userservice.dto.auth.request.AuthenticationRequest;
 import com.example.userservice.dto.auth.request.IntrospectRequest;
+import com.example.userservice.dto.auth.request.LogoutRequest;
 import com.example.userservice.dto.auth.response.AuthenticationResponse;
 import com.example.userservice.dto.auth.response.IntrospectResponse;
+import com.example.userservice.entity.InvalidedToken;
 import com.example.userservice.entity.User;
 import com.example.userservice.exception.AppException;
 import com.example.userservice.exception.ErrorCode;
 import com.example.userservice.permisson.Permission;
 import com.example.userservice.permisson.PermissionRepository;
+import com.example.userservice.repository.InvalidedTokenRepository;
 import com.example.userservice.repository.UserRepository;
 import com.example.userservice.role.Role;
 import com.example.userservice.role.RoleRepository;
@@ -32,6 +35,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -46,6 +50,8 @@ public class AuthenticationService {
     @Resource
     PermissionRepository permissionRepository;
 
+    @Resource
+    private InvalidedTokenRepository invalidedTokenRepository;
     @NonFinal
     @Value("${jwt.signerKey}")
     protected String SECRET_KEY;
@@ -70,22 +76,17 @@ public class AuthenticationService {
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
         // lấy token
         var token = request.getToken();
+        boolean isValid = true;
 
-
-        // giải mã thật toán đã has
-        JWSVerifier verifier = new MACVerifier(SECRET_KEY.getBytes());
-
-        // dùng để parse chuỗi token
-        SignedJWT signedJWT = SignedJWT.parse(token);
-
-        // kiểm tra token hết hạn chưa
-        Date expTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-
-        var verified = signedJWT.verify(verifier);
+        try {
+            verifyToken(token);
+        } catch (AppException | JOSEException |ParseException  e) {
+            isValid = false;
+        }
 
 
         return IntrospectResponse.builder()
-                .valid(verified && expTime.after(new Date()))
+                .valid(isValid)
                 .build();
     }
 
@@ -102,6 +103,7 @@ public class AuthenticationService {
                 .expirationTime(new Date(Instant.now().plus(
                         15, ChronoUnit.MINUTES
                 ).toEpochMilli()))
+                .jwtID(UUID.randomUUID().toString())
                 .claim("scope", buildScope(user))
                 .build();
 
@@ -143,4 +145,51 @@ public class AuthenticationService {
     }
 
 
+    public void logout(LogoutRequest request) throws ParseException, JOSEException {
+
+        var signToken = verifyToken(request.getToken());
+        // lấy jwtToken Id
+        String jit = signToken.getJWTClaimsSet().getJWTID();
+        // lấy expirationDate
+        Date expirationDate = signToken.getJWTClaimsSet().getExpirationTime();
+
+        InvalidedToken invalidedToken = InvalidedToken.builder()
+                .id(jit)
+                .expriryDate(expirationDate)
+                .build();
+
+
+        invalidedTokenRepository.save(invalidedToken);
+
+    }
+
+
+    // hàm sử lý token
+    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+
+
+        // giải mã thật toán đã has
+        JWSVerifier verifier = new MACVerifier(SECRET_KEY.getBytes());
+
+        // dùng để parse chuỗi token
+        SignedJWT signedJWT = SignedJWT.parse(token);
+
+        // kiểm tra token hết hạn chưa
+        Date expTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        var verified = signedJWT.verify(verifier);
+
+
+        // nếu token không dc verify hoặc hết hạn
+        if (!(verified && expTime.after(new Date()))) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+
+        if (invalidedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        return signedJWT;
+    }
 }
